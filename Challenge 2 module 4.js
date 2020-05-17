@@ -2,29 +2,59 @@ var inputElement = document.querySelector('input');
 var buttonElement = document.querySelector('button');
 var repositoryList = document.querySelector('ul');
 
-// inputElement.style.width = '500px';
-
 buttonElement.onclick = function searchUser() {
     deleteChild();
     var inputValue = inputElement.value;
-    axios.get('https://api.github.com/users/' + inputValue + '/repos')
+
+    var loadingElement = document.createElement('li');
+    repositoryList.appendChild(loadingElement);
+    var loadingText = document.createTextNode('Loading...');
+    loadingElement.appendChild(loadingText);
+
+    var loading = axios.get('https://api.github.com/users/' + inputValue + '/repos')
         .then(function (response) {
-            var objectEntries = Object.entries(response.data[0]);
+            repositoryList.removeChild(loadingElement);
+            var length = response.data.length;
+            var i = 0;
 
-            for (objectEntrie of objectEntries) {
-                var objectEntrieString = objectEntrie.toString();
-                objectEntrieString = objectEntrieString.replace(/,/, ': ');
+            if (length === i) {
+                alert(inputValue + ' doesn’t have any public repositories yet.');
+            } else {
+                while (i <= length - 1) {
+                    var objectEntries = Object.entries(response.data[i]);
 
-                var itemElement = document.createElement('li');
-                var textElement = document.createTextNode(objectEntrieString)
-                console.log(response);
+                    var itemElement = document.createElement('li');
+                    repositoryList.appendChild(itemElement);
+                    var textElement = document.createTextNode('Repository ' + (i + 1) + ': ');
+                    itemElement.appendChild(textElement);
+                    var brElement = document.createElement("br");
+                    itemElement.appendChild(brElement);
 
-                itemElement.appendChild(textElement);
-                repositoryList.appendChild(itemElement);
+                    for (objectEntrie of objectEntries) {
+                        var objectEntrieString = objectEntrie.toString();
+                        objectEntrieString = objectEntrieString.replace(/,/, ': ');
+
+                        var textElement = document.createTextNode(' - ' + objectEntrieString)
+                        itemElement.appendChild(textElement);
+
+                        var brElement = document.createElement("br");
+                        itemElement.appendChild(brElement);
+                    }
+                    i++;
+                };
+
             }
         })
         .catch(function (error) {
-            alert('Please, type a valid Github username');
+            var response = error.response;
+
+            if (response != null) {
+                var objectEntries = Object.entries(response);
+                defineError(objectEntries);
+            } else {
+                alert('An unknown error ocurred. Please, try again.');
+            }
+            repositoryList.removeChild(loadingElement);
         })
     inputElement.value = '';
 }
@@ -37,4 +67,19 @@ function deleteChild() {
     }
 }
 
-//(6) ["data", "status", "statusText", "headers", "config", "request"]
+function defineError(objectEntries) {
+    var status = objectEntries[1];
+
+    if (status[1] == 404) {
+        alert('Please, enter a valid Github username.');
+    } else {
+        alert('An unknown error ocurred. Please, try again.');
+    }
+}
+
+inputElement.addEventListener("keyup", function (event) {
+    if (event.keyCode === 13) {
+        event.preventDefault();
+        buttonElement.click();
+    }
+});
